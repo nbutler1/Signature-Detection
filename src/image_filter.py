@@ -1,21 +1,21 @@
 '''
 File:        Image Filter
-Date:        02/07/18
+Date:        02/21/18
 Authors:     Robert Neff, Nathan Butler
 Description: Defines functions for reading and filtering images.
 '''
 
-import cv2
 import os
 from scipy.signal import medfilt
+from scipy import misc
 
 '''
-Function: filter_images
------------------------
+Function: filter_dir
+--------------------
 Filters all images in inpath directory, saves results
-to the outpath directory and returns the new images
+to the outpath directory and returns the new images.
 '''
-def filter_images(inpath, outpath):
+def filter_dir(inpath, outpath):
     
     resulting_imgs = []
     
@@ -32,19 +32,23 @@ Loads and filters an image, saving it if desired.
 '''
 def get_filtered_image(inpath, filename, outpath, save=False):
     # Load image as grayscale image
-    img = cv2.imread(inpath + filename, 0)
+    img = misc.imread(inpath + filename, mode='L')
     
     # Convert to binary
     threshold = 127
-    img_binary = cv2.threshold(img, threshold, 255, cv2.THRESH_BINARY)[1]
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            if (img[i, j] > threshold):
+                img[i, j] = 255
+            else:
+                img[i, j] = 0
     
     # Median filter it
-    # median = cv2.medianBlur(img_binary, 3)
-    median = medfilt(img_binary, 1) # less loss of definition than above option
+    median = medfilt(img, 1) # less loss of definition than above option
      
     # Save new file
     if (save):
-        cv2.imwrite(outpath + filename, median)
+        misc.imsave(outpath + filename, median)
         
     return median
     

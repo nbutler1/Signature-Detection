@@ -1,17 +1,9 @@
 '''
-File:        Custom DRT
-Date:        02/10/18
+File:        Invariant Discrete Radon Transform (DRT)
+Date:        02/21/18
 Authors:     Robert Neff, Nathan Butler
-Description: Implements the discrete radon transformation with rotational 
-             and scaling invariance.
-
-Useful sources:
-Paper 1:
-https://ac.els-cdn.com/S1568494615007577/1-s2.0-S1568494615007577-main.pdf?_tid=046b6bdc-0e3c-11e8-89cf-00000aacb35e&acdnat=1518251337_bef3cd4d78db771b353595816db8682f
-Paper 2:
-https://link.springer.com/content/pdf/10.1155%2FS1110865704309042.pdf
-Paper 3:
-http://www.ijirst.org/articles/IJIRSTV3I1015.pdf
+Description: Implements the discrete radon transformation with rotational, 
+             shift and scaling invariance.
 '''
 
 import numpy as np
@@ -21,10 +13,6 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as interp
 from skimage.transform import rescale
 from skimage.transform._warps_cy import _warp_fast
-import image_filter
-
-# TODO: Remove
-import cv2 # for imwrite, remove once done testing
 
 '''
 Function: compute_drt
@@ -96,7 +84,8 @@ def interp_resize_1d(arr, new_len):
 Function: decimate_zeros
 ------------------------
 Decimates the zero values from a provided vector (i.e. only keeps non-zero components),
-then rescales the resulting vector to the provided size via interpolation.
+then rescales the resulting vector to the provided size via interpolation. This
+ensures there is shift invariance.
 '''
 def decimate_zeros(proj, new_size):
     decimated_proj = []
@@ -113,7 +102,8 @@ def decimate_zeros(proj, new_size):
 Function: post_process_sinogram
 -------------------------------
 Normalizes the sinogram at each angle and decimates zero values within those
-columns, rescaling the vectors to a provided size via interpolation
+columns, rescaling the vectors to a provided size via interpolation. This ensures
+there is scale invariance.
 '''
 def post_process_sinogram(sinogram, scaled_size=None):
     if (scaled_size == None):
@@ -161,21 +151,3 @@ def plot_sinogram(sinogram, img, outpath):
     fig.tight_layout()
     
     plt.savefig(outpath + "sinogram_plot.png")
-
-'''
-For testing.
-'''
-def main():
-    images = image_filter.filter_images("../test_images/", "../output/")
-    
-    sinogram = compute_drt(images[0], np.arange(180))
-    cv2.imwrite("../output/sinogram_base_img.png", sinogram)
-    
-    plot_sinogram_angles(sinogram, [0, 45, 90], "../output/")
-    plot_sinogram(sinogram, images[0], "../output/")
-    
-    new_sinogram = post_process_sinogram(sinogram, 400)
-    cv2.imwrite("../output/sinogram_processed_img.png", new_sinogram)
-    
-if __name__ == '__main__':
-    main()

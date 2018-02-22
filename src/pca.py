@@ -1,23 +1,66 @@
-from scipy import misc
-from sklearn.decomposition import PCA
+'''
+File:        Principle Component Analysis (PCA)
+Date:        02/21/18
+Authors:     Robert Neff, Nathan Butler
+Description: Extracts the principle features of a DRT generated sinogram.
+
+'''
 
 import numpy as np
+from sklearn.decomposition import PCA
 
-
-def takePCA(data, comps):
+'''
+Function: sklearn_pca
+---------------------
+Takes the PCA of the provided data using the sklearn library.
+'''
+def sklearn_pca(data, comps):
     pca = PCA(n_components=comps)
     pca.fit(data)
     components = pca.transform(data)
     filtered = pca.inverse_transform(components)
     return filtered
 
-def main():
-    # first read in files
-    data = misc.imread("../output/sinogram_processed_img.png")
-    # then output files
-    out = takePCA(data, 10)
-    misc.imsave("../output/singoram_processed_pca.png", out)
-    # take pca
+'''
+Function: get_pca
+-----------------
+Extracts the principle components from the drt generated sinogram,
+keeping the P greatest contributing features from angle features represented.
+'''
+def get_pca(sinogram, P=30):
+    samples, features = sinogram.shape
+    
+    # Get average DRT features per angle
+    R_ave = np.mean(sinogram, axis=0)
+    sinogram -= R_ave
+    
+    # Get eigenvectors from svd
+    # The right singular vectors (rows of VT) = eigenvectors of the 
+    # covariance matrix, i.e. sinogram * sinogram^T
+    U, s, VT = np.linalg.svd(sinogram, full_matrices=False)
+    U, VT = svd_flip(U, VT)
+    eig_vecs = VT
+    
+    # Compute eigen signatures
+    eigen_signatures = np.zeros((features, features))
+    for i in range(features):
+        for j in range(features):
+            eigen_signatures[i, :] += eig_vecs[i, j] * sinogram[j, :]
+    
+    return eigen_signatures[:P]
+    
+'''
+Function: svd_flip
+------------------
+Adjusts the columns of u and the rows of v such that the loadings in the
+columns in u that are largest in absolute value are always positive.
 
-if __name__ == "__main__":
-    main()
+Ref: https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/extmath.py#L503
+'''  
+def svd_flip(U, V):
+    # Rows of V, columns of U
+    max_abs_rows = np.argmax(np.abs(V), axis=1)
+    signs = np.sign(V[xrange(V.shape[0]), max_abs_rows])
+    U *= signs
+    V *= signs[:, np.newaxis]
+    return U, V
