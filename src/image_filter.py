@@ -34,17 +34,18 @@ def get_filtered_image(inpath, filename, outpath, save=False):
     # Load image as grayscale image
     img = misc.imread(inpath + filename, mode='L')
     
+	# Median filter it
+    median = medfilt(img, 1) # less loss of definition than above option
+	
     # Convert to binary
     threshold = 127
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
-            if (img[i, j] > threshold):
-                img[i, j] = 255
+    for i in range(median.shape[0]):
+        for j in range(median.shape[1]):
+            if (median[i, j] > threshold):
+                median[i, j] = 255
             else:
-                img[i, j] = 0
-    
-    # Median filter it
-    median = medfilt(img, 1) # less loss of definition than above option
+                median[i, j] = 0
+   
      
     # Save new file
     if (save):
