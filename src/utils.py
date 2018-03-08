@@ -14,12 +14,6 @@ based on probability r of being in the test set.
 def parse_data(data, r= .05):
     train, test = [], []
     for i in range(len(data)):
-        """
-        if data[i]['label'][0] == 0:
-            data[i]['label'] = [0.0, 100.0]
-        else:
-            data[i]['label'] = [100.0, 0.0]
-        """
         val = random.uniform(0, 1)
         if val< r:
             test.append(data[i])
@@ -46,14 +40,6 @@ def transform(data, comp_method=None):
         s = batch[-1].shape
         batch[-1] = np.reshape(batch[-1], (s[0]*s[1]))
         labels.append(data[i]['label'])
-    """
-    for i in range(len(labels)):
-        l = labels[i]
-        if l[0] == 0:
-            labels[i] = 0.0
-        else:
-            labels[i] = 100.0
-    """
     return [np.stack(batch, axis = 0), np.array(labels)]
 
 
