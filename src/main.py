@@ -23,41 +23,8 @@ import pickle
 import random
 import matplotlib.pyplot as plt
 from comp_net import ComparisonNet
-from utils import pickle_data
+from utils import pickle_data, parse_data, transform
 from sklearn.svm import LinearSVC
-
-def parse_data(data, r= .05):
-    train, test = [], []
-    for i in range(len(data)):
-        if data[i]['label'][0] == 0:
-            data[i]['label'] = [0.0, 100.0]
-        else:
-            data[i]['label'] = [100.0, 0.0]
-        val = random.uniform(0, 1)
-        if val< r:
-            test.append(data[i])
-        else:
-            train.append(data[i])
-    print "Train len " + str(len(train))
-    print "Test len " + str(len(test))
-    return test, train
-
-def transform(data):#, batch_shape):
-    batch, labels = [], []
-    for i in range(len(data)):
-        #batch.append(np.concatenate((data[i]['1'], data[i]['2'])))
-        batch.append(data[i]['1'] - data[i]['2'])
-        s = batch[-1].shape
-        batch[-1] = np.reshape(batch[-1], (s[0]*s[1])) #batch_shape))
-        labels.append(np.reshape(np.array(data[i]['label']), (2)))
-        
-    for i in range(len(labels)):
-        l = labels[i]
-        if l[0] == 0:
-            labels[i] = 0.0
-        else:
-            labels[i] = 100.0
-    return [np.stack(batch, axis = 0), np.array(labels)]
 
 '''
 Function: main
@@ -82,7 +49,6 @@ def main():
     print "Dev Score is: " + str(score)
     score = clf.score(test[0], test[1])
     print "Test Score is: " + str(score)
-    print train[1]
     """
     (P, n) = data[0]['1'].shape
     dev = transform(dev)
