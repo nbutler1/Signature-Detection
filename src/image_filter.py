@@ -15,13 +15,13 @@ Function: filter_dir
 Filters all images in inpath directory, saves results
 to the outpath directory and returns the new images.
 '''
-def filter_dir(inpath, outpath):
+def filter_dir(inpath, outpath="", save=False):
     
     resulting_imgs = []
     
     for filename in os.listdir(inpath):
         if (filename.endswith(".jpg") or filename.endswith(".png")): 
-            resulting_imgs.append(get_filtered_image(inpath, filename, outpath, True))
+            resulting_imgs.append(get_filtered_image(inpath, filename, outpath, save))
     
     return resulting_imgs
 

@@ -3,7 +3,6 @@ File:        Principle Component Analysis (PCA)
 Date:        02/21/18
 Authors:     Robert Neff, Nathan Butler
 Description: Extracts the principle features of a DRT generated sinogram.
-
 '''
 
 import numpy as np

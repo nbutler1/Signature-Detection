@@ -1,17 +1,26 @@
+'''
+File:        Utils
+Date:        03/14/18
+Authors:     Robert Neff, Nathan Butler
+Description: Defines utlity functions for processing and loading data.
+'''
+
 import image_filter
 import invariant_drt
+import dct
 import os
 import pca
 import pickle
 import random
 import numpy as np
+
 """
 Function: parse_data
 --------------------
 This function randomly splits data into test and train sets
 based on probability r of being in the test set.
 """
-def parse_data(data, r= .05):
+def parse_data(data, r=0.95):
     train, test = [], []
     for i in range(len(data)):
         val = random.uniform(0, 1)
@@ -19,7 +28,7 @@ def parse_data(data, r= .05):
             test.append(data[i])
         else:
             train.append(data[i])
-    return test, train
+    return train, test
 
 """
 Function: transform
@@ -34,7 +43,6 @@ def transform(data, comp_method=None):
     if comp_method is None:
         def comp_method(p1, p2):
             return p1 - p2
-    
     for i in range(len(data)):
         batch.append(comp_method(data[i]['1'], data[i]['2']))
         s = batch[-1].shape
@@ -42,26 +50,45 @@ def transform(data, comp_method=None):
         labels.append(data[i]['label'])
     return [np.stack(batch, axis = 0), np.array(labels)]
 
-
-
 """
 Function: get_images_pipeline
 -----------------------------
 Given a file that contains multiple images, filters the images,
 runs drt on them, then pca, then returns the images components.
 """
-def get_images_pipeline(in_file):
-    # Filter images
-    images = image_filter.filter_dir(in_file, "", False)
+def get_images_pipeline2(in_file):
+    print "Filtering images ..."
+    images = image_filter.filter_dir(in_file)
     image_components = []
+    
+    print "Getting image components drt..."
     for img in images:
         # Compute DRT and then PCA
-        sinogram = invariant_drt.compute_drt(img, np.arange(180))
+        sinogram = invariant_drt.compute_drt(img)
         new_sinogram = invariant_drt.post_process_sinogram(sinogram, 400)
         components = pca.get_pca(new_sinogram)
         image_components.append(components)
-    return image_components
+    return image_components	
 
+"""
+Function: get_images_pipeline2
+------------------------------
+Given a file that contains multiple images, filters the images,
+runs dct on them, then returns the 10 x 10 greatest signals per image.
+"""
+def get_images_pipeline(in_file):
+    print "Filtering images ..."
+    images = image_filter.filter_dir(in_file)
+    image_components = []
+    
+    print "Getting image components dct ..."
+    for img in images:
+        # Compute DCT and then components
+        image_dct = dct.compute_dct_2d(img)
+        components = dct.get_components(image_dct)
+        image_components.append(components)
+    return image_components
+	
 """
 Function: pickle_data
 ---------------------
@@ -99,8 +126,10 @@ def pickle_data(path, outfile):
             fakes = []
             for filename in os.listdir(path + f + "/"):
                 if filename == "Reference":
+                    print "Reference"
                     genuine = get_images_pipeline(path + f + "/" + filename + "/")
                 elif filename == "Simulated":
+                    print "Simulated"
                     fakes = get_images_pipeline(path + f + "/" + filename + "/")
             for i in range(len(genuine)):
                 comp1 = genuine[i]
