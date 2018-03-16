@@ -11,10 +11,11 @@ from sklearn.decomposition import PCA
 '''
 Function: sklearn_pca
 ---------------------
-Takes the PCA of the provided data using the sklearn library.
+Returns the PCA reconstruction of the provided data using "n" greatest 
+components via the sklearn library.
 '''
-def sklearn_pca(data, comps):
-    pca = PCA(n_components=comps)
+def sklearn_pca(data, n):
+    pca = PCA(n_components=n)
     pca.fit(data)
     components = pca.transform(data)
     filtered = pca.inverse_transform(components)

@@ -16,9 +16,9 @@ Filters all images in inpath directory, saves results
 to the outpath directory and returns the new images.
 '''
 def filter_dir(inpath, outpath="", save=False):
-    
     resulting_imgs = []
     
+    # Filter images in provided path
     for filename in os.listdir(inpath):
         if (filename.endswith(".jpg") or filename.endswith(".png")): 
             resulting_imgs.append(get_filtered_image(inpath, filename, outpath, save))
@@ -45,7 +45,6 @@ def get_filtered_image(inpath, filename, outpath, save=False):
                 median[i, j] = 255
             else:
                 median[i, j] = 0
-   
      
     # Save new file
     if (save):

@@ -105,10 +105,10 @@ Normalizes the sinogram at each angle and decimates zero values within those
 columns, rescaling the vectors to a provided size via interpolation. This ensures
 there is scale invariance.
 '''
-def post_process_sinogram(sinogram, scaled_size=None):
+def post_process_sinogram(sinogram, scaled_size=400):
     if (scaled_size == None):
         scaled_size = int(sinogram.shape[0] / 2)
-    
+	
     rescaled_sinogram = np.zeros((scaled_size, sinogram.shape[1]))
     
     # Loop over projection at each angle
