@@ -5,7 +5,7 @@ Authors:     Robert Neff, Nathan Butler
 Description: Runs singature-verification components.
 '''
 
-# TODO: build pickle sets, compare results, get images for presentation and report
+# TODO: build pickle sets, compare results, get results plots
 
 import utils
 import os
@@ -41,8 +41,7 @@ def main():
 	
     data_path = "../../signDist1.0/images1/subject_025/"
     pickle_path = "../../Data/test"
-	
-    utils.run_tests(data_path, pickle_path, num_runs=1, method=m)
+    #utils.run_tests(data_path, pickle_path, num_runs=1, method=m)
 	
     print "Done!"
 	

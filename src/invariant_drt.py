@@ -65,7 +65,7 @@ def compute_drt(img, angles=None, n_beams=600):
     # Build sinogram
     for i in range(len(angles)):
         rotated_img = _warp_fast(padded_image, build_rotation(angles[i]))
-        
+
         # Compute ith angle beam sum vector, i.e. all beams on current angle
         sinogram[:, i] = rotated_img.sum(0)
         
@@ -128,8 +128,15 @@ Plots the beam sums for a specific set of angles.
 '''
 def plot_sinogram_angles(sinogram, angles, outpath):
     plt.figure(figsize=(8, 8.5))
+    plt.title("DRT signals at specified angles")
+    plt.xlabel("Features")
+    plt.ylabel("Signal")
+
+    lines = []
     for i in angles:
-        plt.plot(sinogram[:, i])
+        line_i, = plt.plot(sinogram[:, i], label="Angle %d" % i)
+        lines.append(line_i)
+    plt.legend(handles=lines)
     plt.savefig(outpath + "sinogram_angles_plot.png")
     
 '''
@@ -147,7 +154,7 @@ def plot_sinogram(sinogram, img, outpath):
     ax2.set_xlabel("Projection angle (deg)")
     ax2.set_ylabel("Projection beam (jth beam sum)")
     ax2.imshow(sinogram, cmap=plt.cm.Greys_r,
-               extent=(0, 180, 0, sinogram.shape[0]), aspect="auto")
+               extent=(0, sinogram.shape[1], 0, sinogram.shape[0]), aspect="auto")
     fig.tight_layout()
     
     plt.savefig(outpath + "sinogram_plot.png")
