@@ -14,7 +14,7 @@ Function: sklearn_pca
 Returns the PCA reconstruction of the provided data using "n" greatest 
 components via the sklearn library.
 '''
-def sklearn_pca(data, n):
+def sklearn_pca(data, n=10):
     pca = PCA(n_components=n)
     pca.fit(data)
     components = pca.transform(data)
@@ -27,7 +27,7 @@ Function: get_pca
 Extracts the principle components from the drt generated sinogram,
 keeping the P greatest contributing features from angle features represented.
 '''
-def get_pca(sinogram, P=30):
+def get_pca(sinogram, P=2):
     samples, features = sinogram.shape
     
     # Get average DRT features per angle

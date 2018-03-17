@@ -30,7 +30,11 @@ Function: get_filtered_image
 ----------------------------
 Loads and filters an image, saving it if desired.
 '''
-def get_filtered_image(inpath, filename, outpath, save=False):
+def get_filtered_image(inpath, filename, outpath=None, save=False):
+    # If outpath not specified, save to source location
+    if (outpath is None):
+        outpath = inpath
+
     # Load image as grayscale image
     img = misc.imread(inpath + filename, mode='L')
     

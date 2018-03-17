@@ -13,6 +13,8 @@ import os
 import pca
 import pickle
 import random
+from sklearn.svm import LinearSVC
+from sklearn.metrics import classification_report, precision_recall_fscore_support
 
 '''
 Function: parse_data
@@ -39,7 +41,8 @@ pca components) and outputs a single np array. This function
 transforms the data points into a single array like object.
 '''
 def transform(data, comp_method=None):
-    batch, labels = [], []
+    batch = []
+    labels = []
     if comp_method is None:
         def comp_method(p1, p2):
             return p1 - p2
@@ -48,38 +51,46 @@ def transform(data, comp_method=None):
         s = batch[-1].shape
         batch[-1] = np.reshape(batch[-1], (s[0]*s[1]))
         labels.append(data[i]['label'])
-    return [np.stack(batch, axis = 0), np.array(labels)]
+    return [np.stack(batch, axis=0), np.array(labels)]
 
 '''
 Function: get_images_pipeline
 -----------------------------
 Filters images in the provided file, then processes them per specified 
-version:
+method:
 1) DRT and PCA processing,
 2) FFT DCT and greatest frequency coefficients from DCT,
 3) Block DCT and largest coefficient from each block.
 '''
-def get_images_pipeline(in_file, version=3):
-    print "Filtering images ..."
-    images = image_filter.filter_dir(in_file)
+def get_images_pipeline(in_file, method=1):
+    print "Filtering images and getting components, method", method, "..."
+    #images = image_filter.filter_dir(in_file) # don't load all images into memory at once for performance
     image_components = []
     
-    print "Getting image components version", version, "..."
-    for img in images:
+    # Loop over each image in source directory and process individually
+    i = 0
+    for filename in os.listdir(in_file):
+        # Skip non-image files
+        if (not (filename.endswith(".jpg") or filename.endswith(".png"))):
+            continue
+        
+        # Get filtered image
+        img = image_filter.get_filtered_image(in_file, filename)			
+        
+        # Extract the image components
         components = 0.
-		
-        if (version == 1): # use DRT, PCA
+        print i, # for debugging to watch progress
+        if (method == 1): # use DRT, PCA
             sinogram = invariant_drt.compute_drt(img)
             new_sinogram = invariant_drt.post_process_sinogram(sinogram)
             components = pca.get_pca(new_sinogram)
-        elif (version==2): # use DCT FFT method
+        else: # use DCT FFT method
             image_dct = dct.fft_dct_2d(img)
             components = dct.get_largest_freqs(image_dct)
-        else: # use DCT block method
-            image_dct = dct.block_dct(img)
-            components = dct.get_block_comps(image_dct)
-		
-	image_components.append(components)
+        image_components.append(components)
+        i += 1
+    
+    print "[Done]"
     return image_components
 	
 '''
@@ -92,7 +103,7 @@ set. Each image is processed according to pipeline specifications.
 This creates a dictionary of training instances, which are pickled (saved)
 the outfile. The path should point to a directory of the following form:
 path - 
-    ../userA/
+    ../user/
         Genuine/
             *** all genuine signatures ***
         Forgeries/
@@ -106,7 +117,7 @@ datapoint is of the form:
      'label' : 0 if sig 2 forged, 100 if genuine (representing persentages)
     }
 '''
-def pickle_data(path, outfile):
+def pickle_data(path, outfile, method=1):
     # Stored pickle data, return without processing new data
     if os.path.isfile(outfile):
         return pickle.load(open(outfile, 'r'))
@@ -119,15 +130,14 @@ def pickle_data(path, outfile):
         if dir[0] == ".": # skip parent path
             continue
 		
-        print "Current = ", dir
         if dir == "Genuine":
             print "Processing Genuine Signatures ..."
-            genuine = get_images_pipeline(path + dir + "/")
+            genuine = get_images_pipeline(path + dir + "/", method)
         elif dir == "Forgeries":
             print "Processing Forged Signatures ..."
-            fakes = get_images_pipeline(path + dir + "/")
+            fakes = get_images_pipeline(path + dir + "/", method)
 	
-        # Build dataset for analysis
+    # Build dataset for analysis
     for i in range(len(genuine)):
         comp1 = genuine[i]
         label = 100.0
@@ -146,11 +156,10 @@ def pickle_data(path, outfile):
 '''
 Function: get_datasets
 ----------------------
-Gets data from the provided paths (processing if no pickled data), and randomly 
-generates the training, development and test data sets (which are returned).
+Randomly generates the training, development and test data sets 
+(which are returned) from provided pickled data.
 '''
-def get_datasets(data_path, pickle_path, shouldPrint=False):
-    data = pickle_data(data_path, pickle_path)
+def get_datasets(data, shouldPrint=False):
     train, test = parse_data(data)
     train, dev = parse_data(data, r=.9)
     dev = transform(dev)
@@ -210,14 +219,20 @@ Gets data from:
 Then performs SVM data fitting on randomized training and test sets, printing
 average results over provided number of runs. 
 '''
-def run_tests(data_path, pickle_path, num_runs=20):
+def run_tests(data_path, pickle_path, num_runs=20, method=1):
     total_sizes = np.zeros(3) # test, dev, train
     total_scores = np.zeros(3) # (train, dev, test) scores
     precision = recall = np.zeros(2) # test prediction from train fit stats
     
-    print "Running tests for current subject ..."
+    # Gets data from the provided paths (processing if no pickled data)
+    # Declared outside loop so not reloaded for each test
+    print "Getting data ..."
+    data = pickle_data(data_path, pickle_path, method)
+    
+    print "Running tests ...",
     for i in range(num_runs):
-        train, dev, test = get_datasets(data_path, pickle_path)
+        print i,
+        train, dev, test = get_datasets(data)
         total_sizes += np.array([len(train[0]), len(dev[0]), len(test[0])])
         scores, p, r = score_datasets(train, dev, test)
         total_scores += scores
@@ -228,6 +243,7 @@ def run_tests(data_path, pickle_path, num_runs=20):
     precision /= num_runs
     recall /= num_runs
     
+    print "[Done]"
     print "Number of runs = ", num_runs
     print "Average data set sizes:"
     print "Training = ", total_sizes[0], ", Dev = ", total_sizes[1], ", Test = ", total_sizes[2]
