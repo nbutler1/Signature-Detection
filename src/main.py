@@ -18,8 +18,9 @@ Runs the project.
 def main():
     print "Starting!"
 	
-    m = 1
+    m = 2 # method to use
     
+    # Database tests
     '''
     data_path = "../../Dataset_4NSigComp2010/TrainingData/"
     pickle_path = "../../Data/pickle_"
@@ -39,9 +40,10 @@ def main():
         utils.run_tests(data_path + user_dir + "/",  pickle_path + user_dir + "_v" + str(m), method=m, num_runs=1)
     '''
 	
+    # Test individual subject
     data_path = "../../signDist1.0/images1/subject_025/"
     pickle_path = "../../Data/test"
-    #utils.run_tests(data_path, pickle_path, num_runs=1, method=m)
+    utils.run_tests(data_path, pickle_path, num_runs=30, method=m)
 	
     print "Done!"
 	

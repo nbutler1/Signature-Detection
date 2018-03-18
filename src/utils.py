@@ -59,8 +59,7 @@ Function: get_images_pipeline
 Filters images in the provided file, then processes them per specified 
 method:
 1) DRT and PCA processing,
-2) FFT DCT and greatest frequency coefficients from DCT,
-3) Block DCT and largest coefficient from each block.
+2) FFT DCT and greatest frequency coefficients from DCT.
 '''
 def get_images_pipeline(in_file, method=1):
     print "Filtering images and getting components, method", method, "..."
@@ -83,10 +82,10 @@ def get_images_pipeline(in_file, method=1):
         if (method == 1): # use DRT, PCA
             sinogram = invariant_drt.compute_drt(img)
             new_sinogram = invariant_drt.post_process_sinogram(sinogram)
-            components = pca.get_pca(new_sinogram)
+            components = pca.get_pca(new_sinogram, 2) # increase for slightly better accuracy
         else: # use DCT FFT method
             image_dct = dct.fft_dct_2d(img)
-            components = dct.get_largest_freqs(image_dct)
+            components = dct.get_largest_freqs(image_dct, 15, 15) # increase for better accuracy
         image_components.append(components)
         i += 1
     

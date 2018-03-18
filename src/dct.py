@@ -75,4 +75,8 @@ left corner of the DCT.
 '''
 def get_largest_freqs(dct, M=10, N=10):
     components = dct[:M, :N]
-    return np.linalg.norm(components) # return 2-norm to make invariant
+    
+    row_sums = components.sum(axis=1)
+    normalized_comps = components / row_sums[:, np.newaxis]
+	
+    return normalized_comps # return 2-norm to make invariant
