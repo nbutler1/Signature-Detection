@@ -13,8 +13,10 @@ import os
 import pca
 import pickle
 import random
+from scipy.optimize import brentq
+from scipy.interpolate import interp1d
 from sklearn.svm import LinearSVC
-from sklearn.metrics import classification_report, precision_recall_fscore_support
+from sklearn.metrics import classification_report, precision_recall_fscore_support, roc_curve
 
 '''
 Function: parse_data
@@ -48,9 +50,12 @@ def transform(data, comp_method=None):
             return p1 - p2
     for i in range(len(data)):
         batch.append(comp_method(data[i]['1'], data[i]['2']))
+        # If using P=1 then need to resize here:
+        #batch.append(comp_method(np.reshape(data[i]['1'][0], (2, 180)), np.reshape(data[i]['2'][0], (2, 180))))
         s = batch[-1].shape
         batch[-1] = np.reshape(batch[-1], (s[0]*s[1]))
         labels.append(data[i]['label'])
+
     return [np.stack(batch, axis=0), np.array(labels)]
 
 '''
@@ -85,7 +90,8 @@ def get_images_pipeline(in_file, method=1):
             components = pca.get_pca(new_sinogram, 2) # increase for slightly better accuracy
         else: # use DCT FFT method
             image_dct = dct.fft_dct_2d(img)
-            components = dct.get_largest_freqs(image_dct, 15, 15) # increase for better accuracy
+            # Get similar number of components to DRT approach
+            components = dct.get_largest_freqs(image_dct, 18, 18) # increase for better accuracy
         image_components.append(components)
         i += 1
     
@@ -113,7 +119,7 @@ Data output is all combinations of genuine and forged signatures
 datapoint is of the form:
     {'1'     : components of sig 1
      '2'     : components of sig 2
-     'label' : 0 if sig 2 forged, 100 if genuine (representing persentages)
+     'label' : 0 if sig 2 forged, 1 if genuine (representing persentages)
     }
 '''
 def pickle_data(path, outfile, method=1):
@@ -139,7 +145,8 @@ def pickle_data(path, outfile, method=1):
     # Build dataset for analysis
     for i in range(len(genuine)):
         comp1 = genuine[i]
-        label = 100.0
+        label = 1.0
+
         for j in range(len(genuine)):
             comp2 = genuine[j]
             data.append({'1': comp1, '2': comp2, 'label': label})
@@ -147,7 +154,7 @@ def pickle_data(path, outfile, method=1):
         for j in range(len(fakes)):
             comp2 = fakes[j]
             data.append({'1': comp1, '2': comp2, 'label': label})
-    
+		
     # Save data for later use and return
     pickle.dump(data, open(outfile, 'w+'))
     return pickle.load(open(outfile, 'r'))
@@ -159,8 +166,8 @@ Randomly generates the training, development and test data sets
 (which are returned) from provided pickled data.
 '''
 def get_datasets(data, shouldPrint=False):
-    train, test = parse_data(data)
-    train, dev = parse_data(data, r=.9)
+    train, test = parse_data(data, r=0.9)
+    _ , dev = parse_data(data, r=.9)
     dev = transform(dev)
     train = transform(train)
     test = transform(test)
@@ -197,6 +204,13 @@ def score_datasets(train, dev, test, shouldPrint=False):
     predicted = clf.predict(test[0])
     precision, recall = precision_recall_fscore_support(test[1], predicted)[:2]
 	
+    # Get equal error rates and other ROC stats
+    # Ref: https://yangcha.github.io/EER-ROC/
+    # FPR = false positive rate, TPR = true positive rate, 
+	# FNR = 1 - TPR = false negative rate
+    fpr, tpr, thresholds = roc_curve(test[1], clf.predict(test[0]))
+    eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+
     if (shouldPrint):
         print "Train Score is: " + str(score_train)
         print "Dev Score is: " + str(score_dev)
@@ -207,7 +221,7 @@ def score_datasets(train, dev, test, shouldPrint=False):
         print(classification_report(test[1], predicted, target_names=target_names))
 
     # Return scores for analysis
-    return np.array([score_train, score_dev, score_test]), np.array(precision), np.array(recall)
+    return np.array([score_train, score_dev, score_test]), np.array(precision), np.array(recall), eer
 
 '''
 Function: run_test
@@ -222,6 +236,7 @@ def run_tests(data_path, pickle_path, num_runs=20, method=1):
     total_sizes = np.zeros(3) # test, dev, train
     total_scores = np.zeros(3) # (train, dev, test) scores
     precision = recall = np.zeros(2) # test prediction from train fit stats
+    eer_total = 0.0 # equal error rate
     
     # Gets data from the provided paths (processing if no pickled data)
     # Declared outside loop so not reloaded for each test
@@ -233,14 +248,16 @@ def run_tests(data_path, pickle_path, num_runs=20, method=1):
         print i,
         train, dev, test = get_datasets(data)
         total_sizes += np.array([len(train[0]), len(dev[0]), len(test[0])])
-        scores, p, r = score_datasets(train, dev, test)
+        scores, p, r, eer = score_datasets(train, dev, test)
         total_scores += scores
         precision = np.add(precision, p.astype(float))
         recall += r
+        eer_total += eer
     total_sizes /= num_runs
     total_scores /= num_runs
     precision /= num_runs
     recall /= num_runs
+    eer_total /= num_runs
     
     print "[Done]"
     print "Number of runs = ", num_runs
@@ -250,3 +267,4 @@ def run_tests(data_path, pickle_path, num_runs=20, method=1):
     print "Training = ", total_scores[0], ", Dev = ", total_scores[1], ", Test = ", total_scores[2] 
     print "Precision: Genuine = ", precision[0], ", Forged = ", precision[1]
     print "Recall: Genuine = ", recall[0], ", Forged = ", recall[1]
+    print "Equal Error Rate (EER) = ", eer_total

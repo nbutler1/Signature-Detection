@@ -39,11 +39,11 @@ def main():
         print "User = ", user_dir
         utils.run_tests(data_path + user_dir + "/",  pickle_path + user_dir + "_v" + str(m), method=m, num_runs=1)
     '''
-	
+    
     # Test individual subject
-    data_path = "../../signDist1.0/images1/subject_025/"
+    data_path = "../../signDist1.0/images2/subject_002/"
     pickle_path = "../../Data/test"
-    utils.run_tests(data_path, pickle_path, num_runs=30, method=m)
+    utils.run_tests(data_path, pickle_path, num_runs=10, method=m)
 	
     print "Done!"
 	
